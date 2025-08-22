@@ -1,0 +1,5 @@
+{
+  "name": "React MathMon",
+  "description": "A Pokémon-style battle game where players solve math problems to attack, rebuilt in React and TypeScript.",
+  "requestFramePermissions": []
+}

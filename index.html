@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React MathMon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #e7f0ff;
+            touch-action: manipulation;
+        }
+        .font-pixel {
+            font-family: 'Press Start 2P', cursive;
+        }
+        .game-container {
+            border: 8px solid #303252;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2), inset 0 0 15px rgba(0,0,0,0.3);
+        }
+        
+        .battle-scene{
+          position: relative;
+          overflow: hidden;
+          border-radius: 12px;
+        }
+        .bg-grass { background: linear-gradient(to bottom, #87CEEB 60%, #78C850 60%); }
+        .bg-cave { background: linear-gradient(to bottom, #706050 60%, #A18072 60%); }
+        .bg-volcano { background: linear-gradient(to bottom, #2c3e50 60%, #e74c3c 60%); }
+        .bg-legendary { background: linear-gradient(to bottom, #4834d4 60%, #130f40 60%); }
+        .bg-reading { background: linear-gradient(135deg, #f3a683, #f7d794); }
+        
+        .animated-bg {
+            background-size: 200% 100%;
+            animation: bg-pan 20s linear infinite;
+        }
+
+        @keyframes bg-pan {
+            from { background-position: 100% 0; }
+            to { background-position: -100% 0; }
+        }
+
+        .mathmon-sprite {
+            filter: drop-shadow(4px 4px 3px rgba(0,0,0,0.4));
+            transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+            image-rendering: pixelated;
+        }
+        .mirrored {
+            transform: scaleX(-1);
+        }
+        .attack-anim { animation: attack-animation 0.4s ease-in-out; }
+        .mirrored.attack-anim { animation: mirrored-attack-animation 0.4s ease-in-out; }
+        
+        .hit-anim { animation: hit-animation 0.3s ease-in-out; }
+        .faint-anim { animation: faint-animation 1s forwards; }
+        .evolution-anim { animation: evolution-animation 1.5s ease-in-out; }
+        .capture-anim { animation: capture-animation 1.5s ease-in-out forwards; }
+
+        @keyframes attack-animation { 50% { transform: translate(-10px, -5px) scale(1.1); } }
+        @keyframes mirrored-attack-animation { 50% { transform: translate(10px, -5px) scale(1.1) scaleX(-1); } }
+        
+        @keyframes hit-animation { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes faint-animation { to { opacity: 0; transform: translateY(40px); } }
+        @keyframes evolution-animation {
+            0%, 100% { filter: drop-shadow(3px 3px 2px #fff) brightness(1); transform: scale(1); }
+            10%, 30%, 50%, 70%, 90% { filter: drop-shadow(3px 3px 15px #fff) brightness(2.5); transform: scale(1.1); }
+            20%, 40%, 60%, 80% { filter: drop-shadow(3px 3px 2px #fff) brightness(0.5); transform: scale(0.95); }
+        }
+        .mirrored.evolution-anim { animation: mirrored-evolution-animation 1.5s ease-in-out; }
+        @keyframes mirrored-evolution-animation {
+            0%, 100% { filter: drop-shadow(3px 3px 2px #fff) brightness(1); transform: scale(-1, 1); }
+            10%, 30%, 50%, 70%, 90% { filter: drop-shadow(3px 3px 15px #fff) brightness(2.5); transform: scale(-1.1, 1.1); }
+            20%, 40%, 60%, 80% { filter: drop-shadow(3px 3px 2px #fff) brightness(0.5); transform: scale(-0.95, 0.95); }
+        }
+        @keyframes capture-animation {
+            0% { transform: scale(1); filter: brightness(1); }
+            20% { transform: scale(1.1) rotate(15deg); filter: brightness(3) drop-shadow(0 0 10px red); }
+            80% { transform: scale(0); filter: brightness(1); }
+            100% { transform: scale(0); }
+        }
+        .crit-hit-text { animation: crit-hit-fade 1s ease-out forwards; }
+        @keyframes crit-hit-fade {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+        }
+
+        .health-bar-inner { transition: width 0.5s ease-in-out; }
+
+        /* Overworld Map Styles */
+        .map-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            background-color: #333;
+            image-rendering: pixelated;
+        }
+        .map-grid {
+            display: grid;
+        }
+        .tile {
+            width: 40px;
+            height: 40px;
+            background-size: cover;
+        }
+        .tile-grass { background-color: #78C850; }
+        .tile-path { background-color: #F0E68C; }
+        .tile-tree { background-color: #228B22; }
+        .tile-tall-grass { 
+            background-color: #3CB371;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
+        }
+        .tile-wall { background-color: #A9A9A9; border: 1px solid #696969; }
+        .tile-roof { background-color: #B22222; }
+        .tile-door { background-color: #8B4513; }
+        .tile-exit { background: repeating-linear-gradient(45deg, #F0E68C, #F0E68C 5px, #d2c87a 5px, #d2c87a 10px); }
+        
+        .map-sprite {
+            position: absolute;
+            width: 40px;
+            height: 60px; /* Taller sprites */
+            z-index: 10;
+            object-fit: contain;
+            object-position: bottom;
+            transition: top 0.2s linear, left 0.2s linear;
+        }
+        
+        .follower-sprite {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            transition: top 0.2s linear, left 0.2s linear;
+            z-index: 9;
+            image-rendering: pixelated;
+            object-fit: contain;
+        }
+
+        .item-sprite {
+            width: 40px;
+            height: 40px;
+            animation: float 2s ease-in-out infinite;
+        }
+        @keyframes float { 50% { transform: translateY(-4px); } }
+
+        .dialogue-box {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 4px solid #fff;
+            border-radius: 10px;
+            padding: 1rem;
+            color: white;
+            z-index: 30;
+            font-size: 1.1rem;
+            font-family: 'Inter', sans-serif;
+        }
+        .dialogue-box button {
+            float: right;
+            margin-top: 0.5rem;
+            background: #eee;
+            color: #333;
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "react": "https://esm.sh/react@^19.1.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="flex items-center justify-center min-h-screen p-2 md:p-4">
+    <div id="root" class="w-full"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
